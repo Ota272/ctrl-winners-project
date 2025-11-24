@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CapFinance Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+
+        <main class="game-screen active" id="screen-game-main">
+            <header class="app-header">
+                <span class="logo-fin">CAP</span>
+                <h1>ГЛАВНАЯ</h1>
+                <div class="user-coin">FIN</div>
+            </header>
+            
+            <div class="content-padding">
+                <div class="promo-banner">
+                    <div class="banner-text">
+                        <h3>Торгуйте виртуальными активами</h3>
+                        <span class="promo-badge">Без комиссий</span>
+                    </div>
+                    <div style="font-size: 30px;">🚀</div> 
+                </div>
+
+                <div class="info-card">
+                    <span class="card-label">Ваш капитал (USD)</span>
+                    <h2 class="card-value" id="total-capital-display">$ 0.00</h2>
+                    <span class="income-color">↑ 0,00%</span>
+                </div>
+
+                <h3 class="section-title">Инвестируйте!</h3>
+                <div class="assets-grid">
+                    <button class="asset-btn" onclick="showScreen('screen-stocks')">
+                        <img src="aksii.png" alt="Акции">
+                        <span>Акции</span>
+                    </button>
+                    <button class="asset-btn" onclick="showScreen('screen-crypto')">
+                        <img src="kripta.png" alt="Крипта">
+                        <span>Крипта</span>
+                    </button>
+                    <button class="asset-btn" onclick="showScreen('screen-metals')">
+                        <img src="metall.png" alt="Металлы">
+                        <span>Металлы</span>
+                    </button>
+                    <button class="asset-btn" onclick="showScreen('screen-gifts')">
+                        <img src="gift.png" alt="TG Gifts">
+                        <span>Подарки</span>
+                    </button>
+                    <button class="asset-btn" onclick="showScreen('screen-deposit')">
+                        <img src="deposit.png" alt="Депозит">
+                        <span>Депозит</span>
+                    </button>
+                    <button class="asset-btn" onclick="showScreen('screen-skins')">
+                        <img src="skins.png" alt="CS2">
+                        <span>Скины CS2</span>
+                    </button>
+                </div>
+
+                <h3 class="section-title">Ваш портфель (Все активы)</h3>
+                <div class="asset-list" id="all-assets-list">
+                    </div>
+            </div>
+        </main>
+
+        <main class="game-screen" id="screen-list-view">
+            <header class="app-header">
+                <button class="header-back-btn" onclick="showScreen('screen-game-main')"><i class="fa-solid fa-chevron-left"></i></button>
+                <h1 id="list-view-title">АКТИВЫ</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            <div class="content-padding">
+                <div class="asset-list" id="category-list-container">
+                    </div>
+            </div>
+        </main>
+
+        <main class="game-screen" id="screen-deposit">
+             <header class="app-header">
+                <button class="header-back-btn" onclick="showScreen('screen-game-main')"><i class="fa-solid fa-chevron-left"></i></button>
+                <h1>ДЕПОЗИТ</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            <div class="content-padding">
+                <div class="info-card">
+                    <span class="card-label">На вкладе (1% годовых)</span>
+                    <h2 class="card-value" id="deposit-val-display">$ 0.00</h2>
+                </div>
+                <div class="exchange-block">
+                    <input type="number" id="deposit-input" placeholder="Сумма" class="modal-input">
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="depositAction('in')">Положить</button>
+                        <button class="btn btn-danger" onclick="depositAction('out')">Снять</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <main class="game-screen" id="screen-roulette">
+            <header class="app-header">
+                <span class="logo-fin">FIN</span>
+                <h1>РУЛЕТКА</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            <div class="content-padding">
+                <div class="roulette-container">
+                    <h3>Крути и выигрывай!</h3>
+                    <p style="color:#777; font-size:0.9rem;">Испытай удачу. Шанс выиграть +$100 или потерять мелочь.</p>
+                    
+                    <div class="roulette-wheel" id="wheel">
+                        <div class="roulette-arrow"></div>
+                    </div>
+                    
+                    <div class="roulette-result" id="roulette-result"></div>
+                    <button class="spin-btn" onclick="spinRoulette()">КРУТИТЬ</button>
+                </div>
+            </div>
+        </main>
+
+        <main class="game-screen" id="screen-accounts">
+            <header class="app-header">
+                <span class="logo-fin">FIN</span>
+                <h1>СЧЕТА</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            <div class="content-padding">
+                <div class="accounts-grid">
+                    <div class="account-card">
+                        <div class="account-info"><span class="flag-icon">🇺🇸</span> <b>USD</b></div>
+                        <span id="acc-usd">$ 0.00</span>
+                    </div>
+                    <div class="account-card">
+                        <div class="account-info"><span class="flag-icon">🇰🇿</span> <b>KZT</b></div>
+                        <span id="acc-kzt">₸ 0</span>
+                    </div>
+                    <div class="account-card">
+                        <div class="account-info"><span class="flag-icon">🇯🇵</span> <b>JPY</b></div>
+                        <span id="acc-jpy">¥ 0</span>
+                    </div>
+                </div>
+
+                <div class="exchange-block">
+                    <h3>Обмен валют</h3>
+                    <div class="exchange-input-group">
+                        <label>Откуда:</label>
+                        <select id="ex-from">
+                            <option value="usd">USD</option>
+                            <option value="kzt">KZT</option>
+                            <option value="jpy">JPY</option>
+                        </select>
+                    </div>
+                    <div class="exchange-input-group">
+                        <label>Куда:</label>
+                        <select id="ex-to">
+                            <option value="kzt">KZT</option>
+                            <option value="usd">USD</option>
+                            <option value="jpy">JPY</option>
+                        </select>
+                    </div>
+                    <div class="exchange-input-group">
+                        <input type="number" id="ex-amount" placeholder="Сумма перевода">
+                    </div>
+                    <button class="btn btn-primary" onclick="convertCurrency()">Перевести</button>
+                    <p style="text-align: center; color:#999; font-size:0.8rem; margin-top:10px;">Комиссия 0%</p>
+                </div>
+            </div>
+        </main>
+
+        <div class="modal-backdrop" id="trade-modal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <h3 id="m-name">Asset Name</h3>
+                <h2 id="m-price">$ 0.00</h2>
+                <span id="m-dynamic" style="font-weight:bold;">0%</span>
+                <p style="color:#777; margin-top:5px;">У вас есть: <span id="m-owned">0</span></p>
+                <input type="number" id="m-amount" class="modal-input" placeholder="Количество">
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="tradeAction('buy')">Купить</button>
+                    <button class="btn btn-danger" onclick="tradeAction('sell')">Продать</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="tab-bar">
+            <button class="tab-btn" onclick="showScreen('screen-roulette')">
+                <i class="fa-solid fa-dharmachakra"></i>
+                <span>Рулетка</span>
+            </button>
+            <button class="tab-btn" onclick="showScreen('screen-game-main')"> <i class="fa-solid fa-trophy"></i>
+                <span>Рейтинг</span>
+            </button>
+            <button class="tab-btn active" onclick="showScreen('screen-game-main')">
+                <i class="fa-solid fa-house"></i>
+                <span>Главная</span>
+            </button>
+            <button class="tab-btn" onclick="showScreen('screen-accounts')">
+                <i class="fa-solid fa-wallet"></i>
+                <span>Счета</span>
+            </button>
+             <button class="tab-btn">
+                <i class="fa-solid fa-bars"></i>
+                <span>Еще</span>
+            </button>
+        </footer>
+
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
