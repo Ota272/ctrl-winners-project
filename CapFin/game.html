@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -107,19 +108,26 @@
             </header>
             <div class="content-padding">
                 <div class="roulette-container">
-                    <h3>Крути и выигрывай!</h3>
-                    <p style="color:#777; font-size:0.9rem;">Испытай удачу. Шанс выиграть +$100 или потерять мелочь.</p>
+                    <h3>Ставки высоки!</h3>
+                    <p style="color:#777; font-size:0.9rem;">Цена попытки: <strong>$2000</strong>.<br>Шанс выиграть <strong>$50,000</strong>.</p>
                     
+                    <div style="background: #eee; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                        Баланс: <span id="roulette-balance" style="color: #27ae60; font-weight: bold;">$ 0.00</span>
+                    </div>
+
                     <div class="roulette-wheel" id="wheel">
                         <div class="roulette-arrow"></div>
                     </div>
                     
                     <div class="roulette-result" id="roulette-result"></div>
-                    <button class="spin-btn" onclick="spinRoulette()">КРУТИТЬ</button>
+                    
+                    <button class="spin-btn" onclick="spinRoulette()">
+                        КРУТИТЬ
+                        <span style="display:block; font-size: 10px; font-weight: normal; opacity: 0.8;">Списание: -$2000</span>
+                    </button>
                 </div>
             </div>
         </main>
-
         <main class="game-screen" id="screen-accounts">
             <header class="app-header">
                 <span class="logo-fin">FIN</span>
