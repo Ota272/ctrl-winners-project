@@ -40,6 +40,7 @@ const RATES = {
 };
 
 let currentModalAsset = null;
+let currentRotation = 0; // Глобальный счетчик вращения рулетки
 
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('finGameData');
@@ -62,6 +63,18 @@ function showScreen(screenId) {
         document.getElementById(screenId).classList.add('active');
         if (screenId === 'screen-game-main') updateAllAssetsList();
         if (screenId === 'screen-accounts') updateAccountsUI();
+        
+        // ОБНОВЛЕНИЕ ДЛЯ РУЛЕТКИ
+        if (screenId === 'screen-roulette') {
+            const balanceDisplay = document.getElementById('roulette-balance');
+            const resultDiv = document.getElementById('roulette-result');
+            if (balanceDisplay) {
+                balanceDisplay.innerText = formatUSD(DATABASE.portfolio.usd);
+            }
+             if (resultDiv) {
+                resultDiv.innerText = ''; // Очистка результата при открытии
+            }
+        }
     }
 }
 
@@ -98,6 +111,7 @@ function updateUI() {
     
     const activeList = document.querySelector('#category-list-container');
     if (activeList && activeList.offsetParent !== null) {
+        // Логика обновления активного списка, если она нужна
     }
     
     if(document.getElementById('screen-game-main').classList.contains('active')) {
@@ -248,40 +262,82 @@ function depositAction(type) {
     updateUI();
 }
 
+// НОВАЯ ФУНКЦИЯ РУЛЕТКИ (ЦЕНА $2000, ПРИЗЫ)
 function spinRoulette() {
     const wheel = document.getElementById('wheel');
     const resultDiv = document.getElementById('roulette-result');
     const btn = document.querySelector('.spin-btn');
-    
+    const balanceDisplay = document.getElementById('roulette-balance');
+    const cost = 2000; // Цена прокрута
+
+    // 1. Проверка баланса
+    if (DATABASE.portfolio.usd < cost) {
+        resultDiv.innerText = "Недостаточно средств ($2000)!";
+        resultDiv.style.color = "red";
+        return;
+    }
+
+    // 2. Списание средств
+    DATABASE.portfolio.usd -= cost;
+    saveData();
+    updateUI();
+    balanceDisplay.innerText = formatUSD(DATABASE.portfolio.usd);
+
+    // Блокировка кнопки и сброс текста
     btn.disabled = true;
-    resultDiv.innerText = 'Крутим...';
-    
-    const deg = 1080 + Math.floor(Math.random() * 360);
-    wheel.style.transform = `rotate(${deg}deg)`;
-    
+    resultDiv.style.color = "#333";
+    resultDiv.innerText = "Вращение...";
+
+    // 3. Логика вращения
+    const randomDegree = Math.floor(Math.random() * 360);
+    const extraSpins = 360 * 5; // Минимум 5 оборотов
+    const totalSpin = extraSpins + randomDegree;
+
+    currentRotation += totalSpin;
+    wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+    // 4. Определение результата (через 4 секунды)
     setTimeout(() => {
-        const rand = Math.random();
-        let winAmount = 0;
+        // Призы (порядок против часовой стрелки от верха 0deg)
+        const segmentValues = [
+            { color: "Голубой", val: 100 },       // 0-45 deg (Потеря $1900)
+            { color: "Красный", val: 50000 },     // 45-90 deg (ДЖЕКПОТ)
+            { color: "Зеленый", val: 10000 },     // 90-135 deg
+            { color: "Желтый", val: 5000 },       // 135-180 deg
+            { color: "Фиолетовый", val: 2000 },   // 180-225 deg (Возврат)
+            { color: "Оранжевый", val: 1000 },    // 225-270 deg (Потеря $1000)
+            { color: "Бирюзовый", val: 500 },     // 270-315 deg (Потеря $1500)
+            { color: "Темный", val: 0 }           // 315-360 deg (Полный проигрыш)
+        ];
+
+        const actualAngle = currentRotation % 360;
+        const segmentIndex = Math.floor((360 - actualAngle) / 45) % 8; 
+        const wonPrize = segmentValues[segmentIndex];
+
+        // Начисление
+        DATABASE.portfolio.usd += wonPrize.val;
         
-        if (rand < 0.2) {
-            winAmount = -Math.floor(Math.random() * 5 + 5);
-        } else if (rand < 0.8) {
-            winAmount = Math.floor(Math.random() * 5 + 1);
-        } else {
-            winAmount = Math.floor(Math.random() * 4 + 7);
+        // Визуальный результат
+        if (wonPrize.val > cost) {
+            resultDiv.style.color = "#27ae60"; // Зеленый
+            resultDiv.innerText = `ДЖЕКПОТ! +${formatUSD(wonPrize.val)}!`;
+        } else if (wonPrize.val === cost) {
+            resultDiv.style.color = "#007aff"; // Синий
+            resultDiv.innerText = `Возврат ставки: ${formatUSD(wonPrize.val)}.`;
         }
-        
-        DATABASE.portfolio.usd += winAmount;
-        
-        const text = winAmount >= 0 ? `Выигрыш: $${winAmount}` : `Проигрыш: $${Math.abs(winAmount)}`;
-        resultDiv.innerText = text;
-        resultDiv.style.color = winAmount >= 0 ? 'green' : 'red';
-        
+         else {
+            resultDiv.style.color = "#e74c3c"; // Красный
+            resultDiv.innerText = `Выпало: ${formatUSD(wonPrize.val)}. (Потеря: ${formatUSD(cost - wonPrize.val)})`;
+        }
+
         saveData();
+        updateUI(); // Обновить общий баланс приложения
+        balanceDisplay.innerText = formatUSD(DATABASE.portfolio.usd);
+        
         btn.disabled = false;
-        setTimeout(() => wheel.style.transform = `rotate(${deg % 360}deg)`, 100);
-    }, 3000);
+    }, 4000);
 }
+// КОНЕЦ НОВОЙ ФУНКЦИИ РУЛЕТКИ
 
 function updateAccountsUI() {
     document.getElementById('acc-usd').innerText = formatUSD(DATABASE.portfolio.usd);
@@ -319,7 +375,9 @@ function convertCurrency() {
 }
 
 function formatUSD(num) {
-    return '$ ' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    // Убедитесь, что num - это число, иначе может вывести ошибку
+    const number = typeof num === 'number' ? num : parseFloat(num);
+    return '$ ' + number.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function saveData() {
