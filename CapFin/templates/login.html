@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+<body>
+
+<div class="auth-container">
+    <h2>Войти</h2>
+
+    <input id="login-username" type="text" placeholder="Логин">
+    <input id="login-password" type="password" placeholder="Пароль">
+
+    <button onclick="login()">Войти</button>
+
+    <p>Нет аккаунта? <a href="/register">Регистрация</a></p>
+</div>
+
+<script>
+async function login() {
+    let username = document.getElementById("login-username").value;
+    let password = document.getElementById("login-password").value;
+
+    let response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+
+    let data = await response.json();
+
+    if (data.status === "ok") {
+        window.location = "/";
+    } else {
+        alert("Неверный логин или пароль");
+    }
+}
+</script>
+
+</body>
+</html>
