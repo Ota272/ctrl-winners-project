@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="/" class="header-back-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <h1>МАГАЗИН</h1>
+            <div style="width: 24px;"></div>
+        </header>
+
+        <div class="content-padding">
+            <div style="background: white; border-radius: 16px; padding: 40px 20px; text-align: center; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                
+                <div style="font-size: 60px; margin-bottom: 20px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));">👑</div>
+                
+                <h2 style="margin: 0 0 10px 0; font-size: 24px;">Премиум Статус</h2>
+                <p style="color: #777; margin: 0 0 25px 0; font-size: 14px; line-height: 1.5;">
+                    Удвоенный доход, доступ к закрытым активам и отсутствие комиссий навсегда.
+                </p>
+                
+                <div style="font-size: 32px; font-weight: 800; color: #333; margin-bottom: 30px;">
+                    1 490 ₸
+                </div>
+
+                <a href="#" style="
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    width: 100%; 
+                    padding: 16px; 
+                    background-color: #f14635; /* Красный цвет Kaspi */
+                    color: white; 
+                    border-radius: 12px; 
+                    text-decoration: none; 
+                    font-weight: 600; 
+                    font-size: 16px;
+                    box-shadow: 0 4px 15px rgba(241, 70, 53, 0.3);
+                    transition: transform 0.2s;
+                " onclick="this.style.transform='scale(0.98)'">
+                    <span style="margin-right: 10px; font-weight: bold; font-family: sans-serif;">Kaspi.kz</span>
+                    <span>Оплатить</span>
+                </a>
+                
+                <p style="margin-top: 15px; font-size: 12px; color: #999;">
+                    <i class="fa-solid fa-shield-halved"></i> Безопасный платеж
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

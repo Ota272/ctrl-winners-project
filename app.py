@@ -41,6 +41,26 @@ def login_page():
 def register_page():
     return render_template("register.html")
 
+@app.route("/shop.html")
+def shop_page():
+    return render_template("shop.html")
+
+@app.route("/rules.html")
+def rules_page():
+    return render_template("rules.html")
+
+@app.route("/offer.html")
+def offer_page():
+    return render_template("offer.html")
+
+@app.route("/policy.html")
+def policy_page():
+    return render_template("policy.html")
+
+@app.route("/report.html")
+def report_page():
+    return render_template("report.html")
+
 
 # ======= 2. АУТЕНТИФИКАЦИЯ (Вход/Регистрация) =======
 

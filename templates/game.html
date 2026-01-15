@@ -87,7 +87,7 @@
             </header>
             <div class="content-padding">
                 <div class="info-card">
-                    <span class="card-label">На вкладе (1% годовых)</span>
+                    <span class="card-label">На вкладе</span>
                     <h2 class="card-value" id="deposit-val-display">$ 0.00</h2>
                 </div>
                 <div class="exchange-block">
@@ -198,6 +198,64 @@
             </div>
         </main>
 
+        <main class="game-screen" id="screen-more">
+            <header class="app-header">
+                <span class="logo-fin">MENU</span>
+                <h1>МЕНЮ</h1>
+                <div style="width: 24px;"></div>
+            </header>
+            
+            <div class="content-padding">
+                <div class="menu-container">
+
+                    <a href="https://t.me/CapFinancenews" target="_blank" style="display:flex; align-items:center; padding:15px; border-bottom:1px solid #eee; color:#000; text-decoration:none; background-color: #f0f9ff;">
+                        <i class="fa-brands fa-telegram" style="color:#229ED9; font-size:24px; margin-right:15px;"></i>
+                        <div>
+                            <span style="display:block; font-weight:600;">Новости проекта</span>
+                            <small style="color:#777; font-size:12px;">Подпишись на канал</small>
+                        </div>
+                        <span style="margin-left:auto; color:#ccc;">›</span>
+                    </a>
+
+                    <div class="menu-card-simple">
+                        <a href="shop.html" class="menu-item-simple">
+                            <i class="fa-solid fa-cart-shopping icon-simple" style="color: #007aff;"></i>
+                            <span class="text-simple">Магазин</span>
+                            <span class="arrow-simple">›</span>
+                        </a>
+                        <a href="rules.html" class="menu-item-simple">
+                            <i class="fa-solid fa-book icon-simple" style="color: #ff3b30;"></i>
+                            <span class="text-simple">Условия игры</span>
+                            <span class="arrow-simple">›</span>
+                        </a>
+                        <a href="offer.html" class="menu-item-simple">
+                            <i class="fa-solid fa-file-contract icon-simple" style="color: #34c759;"></i>
+                            <span class="text-simple">Оферта</span>
+                            <span class="arrow-simple">›</span>
+                        </a>
+                        <a href="policy.html" class="menu-item-simple">
+                            <i class="fa-solid fa-shield-halved icon-simple" style="color: #5856d6;"></i>
+                            <span class="text-simple">Политика</span>
+                            <span class="arrow-simple">›</span>
+                        </a>
+                    </div>
+
+                    <div class="menu-card-simple">
+                        <a href="report.html" class="menu-item-simple warning">
+                            <i class="fa-solid fa-circle-exclamation icon-simple" style="color: #f5a623;"></i>
+                            <span class="text-simple">Сообщить об ошибке</span>
+                            <span class="arrow-simple">›</span>
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <a href="/logout" class="btn btn-danger" style="text-align: center; display: block; text-decoration: none;">Выйти из аккаунта</a>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+
 
         <div class="modal-backdrop" id="trade-modal">
             <div class="modal-content">
@@ -252,7 +310,7 @@
                 <i class="fa-solid fa-wallet"></i>
                 <span>Счета</span>
             </button>
-             <button class="tab-btn">
+            <button class="tab-btn" onclick="showScreen('screen-more')">
                 <i class="fa-solid fa-bars"></i>
                 <span>Еще</span>
             </button>
