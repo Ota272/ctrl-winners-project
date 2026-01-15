@@ -251,21 +251,72 @@ function fetchRealCryptoPrices() {
         .catch(e => console.log('Ошибка API крипты:', e));
 }
 
+// === УНИВЕРСАЛЬНАЯ НАВИГАЦИЯ (ИСПРАВЛЕННАЯ) ===
+
 function showScreen(screenId) {
-    document.querySelectorAll('.game-screen').forEach(el => el.classList.remove('active'));
+    // 1. Сначала скрываем ВООБЩЕ ВСЕ экраны
+    // Мы ищем их и по классу .game-screen, и по ID старых экранов
+    const screens = document.querySelectorAll('.game-screen');
+    screens.forEach(screen => {
+        screen.style.display = 'none';      // Прячем через CSS
+        screen.classList.remove('active');  // Убираем класс активности
+    });
+
+    // Также скрываем старый экран списков (если он открыт)
+    const listView = document.getElementById('screen-list-view');
+    if (listView) {
+        listView.style.display = 'none';
+        listView.classList.remove('active');
+    }
+
+    // 2. Логика для экранов активов (Акции, Крипта и т.д.)
     if (['screen-stocks', 'screen-crypto', 'screen-metals', 'screen-gifts', 'screen-skins'].includes(screenId)) {
         const type = screenId.replace('screen-', '');
         renderAssetList(type); 
-        document.getElementById('screen-list-view').classList.add('active');
-    } else {
-        document.getElementById(screenId).classList.add('active');
-        if (screenId === 'screen-game-main') updateAllAssetsList();
-        if (screenId === 'screen-accounts') updateAccountsUI();
-        if (screenId === 'screen-roulette') {
-            document.getElementById('roulette-balance').innerText = formatUSD(DATABASE.portfolio.usd);
-            document.getElementById('roulette-result').innerText = '';
+        if (listView) {
+            listView.style.display = 'block'; // Показываем экран списков
+            listView.classList.add('active');
+        }
+    } 
+    // 3. Логика для обычных экранов (Главная, Рейтинг, ИИ, Счета)
+    else {
+        const activeScreen = document.getElementById(screenId);
+        if (activeScreen) {
+            activeScreen.style.display = 'block'; // ПРИНУДИТЕЛЬНО показываем
+            activeScreen.classList.add('active');
+            
+            // Специальная логика для конкретных экранов
+            if (screenId === 'screen-game-main') updateAllAssetsList();
+            if (screenId === 'screen-accounts') updateAccountsUI();
+            if (screenId === 'screen-roulette') {
+                const balEl = document.getElementById('roulette-balance');
+                if(balEl) balEl.innerText = formatUSD(DATABASE.portfolio.usd);
+                const resEl = document.getElementById('roulette-result');
+                if(resEl) resEl.innerText = '';
+            }
+            // Для экрана ИИ скроллим вниз при открытии
+            if (screenId === 'screen-ai') {
+                setTimeout(scrollToBottom, 100);
+            }
+        } else {
+            console.error('Экран не найден:', screenId);
         }
     }
+
+    // 4. Подсветка кнопки внизу
+    updateTabButtons(screenId);
+}
+
+// Функция подсветки кнопок меню
+function updateTabButtons(activeScreenId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        // Если в кнопке написано onclick="showScreen('screen-ai')" - делаем её активной
+        const onClickText = btn.getAttribute('onclick');
+        if (onClickText && onClickText.includes(activeScreenId)) {
+            btn.classList.add('active');
+        }
+    });
 }
 
 function renderAssetList(type, parentId = null) {
@@ -698,4 +749,136 @@ function convertCurrency() {
     alert(`Обменяли ${amount} ${from.toUpperCase()} на ${finalAmount.toFixed(2)} ${to.toUpperCase()}`);
     saveData();
     updateAccountsUI();
+}
+
+// === ЛОГИКА ИИ АССИСТЕНТА ===
+
+// === УМНЫЙ ЧАТ С ИСТОРИЕЙ ===
+
+// 1. Загрузка истории при запуске игры
+document.addEventListener('DOMContentLoaded', () => {
+    loadChatHistory();
+});
+
+function toggleAiChat() {
+    const chatWindow = document.getElementById('aiChatWindow');
+    
+    // Переключаем класс .open для красивой анимации
+    if (chatWindow.classList.contains('open')) {
+        chatWindow.classList.remove('open');
+        setTimeout(() => chatWindow.style.display = 'none', 300); // Ждем конца анимации
+    } else {
+        chatWindow.style.display = 'flex';
+        // Небольшая задержка, чтобы анимация сработала
+        setTimeout(() => chatWindow.classList.add('open'), 10);
+        scrollToBottom();
+    }
+}
+
+function handleAiEnter(event) {
+    if (event.key === 'Enter') sendAiMessage();
+}
+
+async function sendAiMessage() {
+    const input = document.getElementById('aiInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // 1. Очищаем поле
+    input.value = '';
+
+    // 2. Добавляем и СОХРАНЯЕМ сообщение юзера
+    addMessageToChat(text, 'user');
+    saveMessageToHistory(text, 'user');
+
+    // 3. Показываем "печатает..."
+    const loadingId = addMessageToChat('Анализирую рынок...', 'bot', true);
+
+    try {
+        // Данные для контекста ИИ
+        const contextData = {
+            usd: DATABASE.portfolio ? DATABASE.portfolio.usd : 0,
+            assets: JSON.stringify(DATABASE.portfolio ? DATABASE.portfolio : {})
+        };
+
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, context: contextData })
+        });
+
+        const data = await response.json();
+
+        // 4. Удаляем загрузку и показываем ответ
+        removeMessage(loadingId);
+        addMessageToChat(data.reply, 'bot');
+        saveMessageToHistory(data.reply, 'bot'); // СОХРАНЯЕМ ответ бота
+
+    } catch (error) {
+        removeMessage(loadingId);
+        addMessageToChat('Ошибка связи. Проверь интернет.', 'bot');
+    }
+}
+
+// === ФУНКЦИИ ИСТОРИИ ===
+
+function saveMessageToHistory(text, sender) {
+    // Получаем текущую историю или создаем пустую
+    let history = JSON.parse(localStorage.getItem('ai_chat_history')) || [];
+    
+    // Добавляем новое сообщение
+    history.push({ text: text, sender: sender, time: new Date().toLocaleTimeString() });
+    
+    // Ограничим историю (например, последние 50 сообщений), чтобы не забивать память
+    if (history.length > 50) history.shift();
+
+    // Сохраняем обратно
+    localStorage.setItem('ai_chat_history', JSON.stringify(history));
+}
+
+function loadChatHistory() {
+    const history = JSON.parse(localStorage.getItem('ai_chat_history')) || [];
+    const chatBox = document.getElementById('aiMessages');
+    
+    // Если история пустая, добавляем приветствие
+    if (history.length === 0) {
+        chatBox.innerHTML = '<div class="message bot">Привет! Я твой AI-брокер. Готов помочь поднять кэш! 📈</div>';
+        return;
+    }
+
+    // Очищаем чат перед загрузкой (на всякий случай)
+    chatBox.innerHTML = ''; 
+
+    // Восстанавливаем сообщения
+    history.forEach(msg => {
+        addMessageToChat(msg.text, msg.sender);
+    });
+}
+
+// Вспомогательные функции
+function addMessageToChat(text, sender, isLoading = false) {
+    const chatBox = document.getElementById('aiMessages');
+    const div = document.createElement('div');
+    div.classList.add('message', sender);
+    div.innerText = text;
+    
+    if (isLoading) {
+        div.style.fontStyle = 'italic';
+        div.style.opacity = '0.7';
+        div.id = 'loading-msg';
+    }
+
+    chatBox.appendChild(div);
+    scrollToBottom();
+    return div.id;
+}
+
+function removeMessage(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+function scrollToBottom() {
+    const chatBox = document.getElementById('aiMessages');
+    chatBox.scrollTop = chatBox.scrollHeight;
 }

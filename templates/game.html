@@ -3,6 +3,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CapFinance Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -198,6 +199,30 @@
             </div>
         </main>
 
+        <main class="game-screen" id="screen-ai" style="display: none;">
+            <header class="app-header">
+                <span class="logo-fin">AI</span>
+                <h1>AI</h1>
+                <div style="width: 24px;"></div> 
+            </header>
+
+            <div class="ai-full-container">
+                <div class="ai-messages-container" id="aiMessages">
+                    <div class="message bot">
+                        Привет! Я Капитал Бот. Готов помочь с инвестициями! 📈
+                    </div>
+                </div>
+
+                <div class="ai-input-wrapper">
+                    <input type="text" id="aiInput" placeholder="Спроси совет..." onkeypress="handleAiEnter(event)">
+                    <button class="ai-send-btn" onclick="sendAiMessage()">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
         <main class="game-screen" id="screen-more">
             <header class="app-header">
                 <span class="logo-fin">MENU</span>
@@ -309,6 +334,10 @@
             <button class="tab-btn" onclick="showScreen('screen-accounts')">
                 <i class="fa-solid fa-wallet"></i>
                 <span>Счета</span>
+            </button>
+            <button class="tab-btn" onclick="showScreen('screen-ai')">
+                <i class="fa-solid fa-robot"></i>
+                <span>AI</span>
             </button>
             <button class="tab-btn" onclick="showScreen('screen-more')">
                 <i class="fa-solid fa-bars"></i>
