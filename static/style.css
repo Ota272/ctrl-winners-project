@@ -1,26 +1,37 @@
 :root {
-    --bg-color: #f4f0e9;
-    --card-bg: #ffffff;
-    --text-dark: #333;
-    --text-light: #777;
-    --accent-blue: #007aff;
-    --accent-green: #34c759;
+    --bg-color: #eaf2f8;
+    --card-bg: rgba(255,255,255,0.9);
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+    --accent-blue: #0088cc;
+    --accent-green: #2ecc71;
     --expense-color: #e74c3c;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
+    
+    background-image: 
+        linear-gradient(to bottom,rgba(255, 255, 255, 0.9), rgba(200, 230, 255, 0.8)), 
+        url('images/background.JPG'); 
+        
+    background-size: cover;        
+    background-position: center;  
+    background-attachment: fixed; 
+    
+    background-color: #eaf2f8; 
+    
     margin: 0;
     padding: 0;
     color: var(--text-dark);
 }
 
+
 .app-container {
     max-width: 450px;
     margin: 0 auto;
     min-height: 100vh;
-    background-color: var(--bg-color);
+    background-color: transparent;
     padding-bottom: 80px;
     box-sizing: border-box;
 }
@@ -31,7 +42,7 @@ body {
 .menu-card {
     display: flex; align-items: center; background-color: var(--card-bg);
     border-radius: 20px; padding: 20px; text-decoration: none;
-    color: var(--text-dark); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+    color: var(--text-dark); box-shadow: 0 4px 15px rgba(0,136,204,0.08);
     transition: transform 0.2s ease; min-height: 120px;
 }
 .menu-card:hover { transform: translateY(-5px); }
@@ -44,12 +55,12 @@ body {
 .app-header {
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 20px; background-color: var(--card-bg);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px;
+    box-shadow: 0 2px 10px rgba(0,136,204,0.08); margin-bottom: 15px;
 }
 .app-header h1 { font-size: 1.2rem; margin: 0; }
-.logo-fin { background: #8e44ad; color: white; padding: 5px 8px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; }
+.logo-fin { background: #094088; color: white; padding: 5px 8px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; }
 .user-coin {
-    width: 35px; height: 35px; background: #f39c12; color: white;
+    width: 35px; height: 35px; background: #0088cc; color: white;
     border-radius: 50%; display: grid; place-items: center; font-weight: bold; font-size: 0.8rem;
 }
 .header-back-btn { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; }
@@ -69,16 +80,17 @@ body {
 .content-padding { padding: 0 15px; }
 
 .promo-banner {
-    background: #1e1e2d; border-radius: 16px; padding: 20px;
+    background: linear-gradient(135deg,#004e92,#0088cc); border-radius: 16px; padding: 20px;
     display: flex; justify-content: space-between; align-items: center;
     color: white; margin-bottom: 20px; position: relative; overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0, 136, 204, 0.2);
 }
-.promo-badge { background: #f39c12; color: #333; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+.promo-badge { background: #ffffff; color: #0088cc; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
 .banner-graphic { width: 80px; position: absolute; right: 10px; bottom: -10px; }
 
 .info-card {
     background: var(--card-bg); border-radius: 16px; padding: 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.03); text-align: center; margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,136,204,0.08); text-align: center; margin-bottom: 20px;
 }
 .card-value { font-size: 1.8rem; margin: 10px 0; color: var(--text-dark); }
 .card-label { color: var(--text-light); font-size: 0.9rem; }
@@ -87,7 +99,7 @@ body {
 .asset-btn {
     background: var(--card-bg); border: none; border-radius: 15px; padding: 15px 5px;
     display: flex; flex-direction: column; align-items: center; gap: 10px;
-    font-size: 0.85rem; color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.03); cursor: pointer;
+    font-size: 0.85rem; color: var(--text-dark); box-shadow: 0 2px 5px rgba(0,136,204,0.08); cursor: pointer;
 }
 .asset-btn img { width: 60px; height: 60px; object-fit: contain; }
 
@@ -111,12 +123,12 @@ body {
 }
 .roulette-wheel {
     width: 200px; height: 200px; margin: 20px auto;
-    border-radius: 50%; border: 5px solid #f39c12;
+    border-radius: 50%; border: 5px solid #bdc3c7;
     background: conic-gradient(
-        #3498db 0deg 45deg, #e74c3c 45deg 90deg, 
-        #2ecc71 90deg 135deg, #f1c40f 135deg 180deg,
-        #9b59b6 180deg 225deg, #e67e22 225deg 270deg, 
-        #1abc9c 270deg 315deg, #34495e 315deg 360deg
+        #3498db 0deg 45deg, #ffffff 45deg 90deg, 
+        #3498db 90deg 135deg, #ffffff 135deg 180deg,
+        #3498db 180deg 225deg, #ffffff 225deg 270deg, 
+        #3498db 270deg 315deg, #ffffff 315deg 360deg
     );
     position: relative;
     transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -124,13 +136,13 @@ body {
 .roulette-arrow {
     position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
     width: 0; height: 0; border-left: 10px solid transparent;
-    border-right: 10px solid transparent; border-top: 20px solid #333; z-index: 5;
+    border-right: 10px solid transparent; border-top: 20px solid #d6dcdf; z-index: 5;
 }
 .spin-btn {
-    background: linear-gradient(to right, #f12711, #f5af19);
+    background: linear-gradient(to right, #5dade2, #0088cc);
     color: white; padding: 15px 40px; border-radius: 30px;
     font-size: 1.2rem; font-weight: bold; border: none; cursor: pointer;
-    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+    box-shadow: 0 5px 15px rgba(0, 136, 204, 0.4);
 }
 .roulette-result {
     margin-top: 20px; font-size: 1.2rem; font-weight: bold; height: 30px;
@@ -162,32 +174,47 @@ body {
 .modal-content {
     background: var(--card-bg); width: 90%; max-width: 350px;
     border-radius: 20px; padding: 25px; position: relative;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 40px rgba(0,136,204,0.08);
 }
 .modal-close { position: absolute; top: 15px; right: 20px; border: none; background: none; font-size: 1.5rem; cursor: pointer; }
 .modal-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin: 10px 0; box-sizing: border-box; font-size: 1.1rem; }
 
 .tab-bar {
     position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 450px; background: var(--card-bg);
+    width: 100%; max-width: 450px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(15px);
     display: flex; justify-content: space-around; padding: 10px 0;
-    border-top: 1px solid #eee; z-index: 900;
+    border-top: 1px solid rgba(0, 136, 204, 0.1); z-index: 900;
 }
 .tab-btn {
     background: none; border: none; display: flex; flex-direction: column;
     align-items: center; color: #999; font-size: 0.7rem; cursor: pointer;
 }
 .tab-btn i { font-size: 1.3rem; margin-bottom: 5px; }
-.tab-btn.active { color: var(--accent-blue); }
+.tab-btn.active { 
+    color: var(--accent-blue); 
+    text-shadow: 0 0 10px rgba(0, 136, 204, 0.5); 
+    transform: translateY(-2px); 
+}
+
+.tab-btn.active::after {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background-color: var(--accent-blue);
+    border-radius: 50%;
+    margin-top: 2px;
+    box-shadow: 0 0 5px var(--accent-blue);
+}
 
 .auth-container {
     max-width: 350px;
     margin: 70px auto;
     padding: 20px;
-    background: white;
+    background: var(--card-bg);
     border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0,136,204,0.1);
     text-align: center;
+    backdrop-filter: blur(10px);
 }
 
 .auth-container input {
@@ -195,13 +222,14 @@ body {
     padding: 12px;
     margin: 10px 0;
     border-radius: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid #d6eaf8;
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .auth-container button {
     width: 100%;
     padding: 12px;
-    background: #007aff;
+    background: var(--accent-blue);
     border: none;
     color: white;
     font-size: 1rem;
@@ -223,11 +251,11 @@ body {
 }
 
 .menu-card-simple {
-    background: #fff;
+    background: var(--card-bg);
     border-radius: 12px;
     margin-bottom: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.03); /* Добавил легкую тень как везде */
+    box-shadow: 0 4px 10px rgba(0,136,204,0.08); /* Добавил легкую тень как везде */
 }
 
 .menu-item-simple {
@@ -300,89 +328,52 @@ body {
     padding: 5px; /* Небольшой отступ внутри рамки */
     margin-right: 15px;
 }
-
-/* === ИИ АССИСТЕНТ === */
-
-/* === СТИЛИ ЭКРАНА ИИ (ФИНАЛ) === */
-
-/* Контейнер внутри main, который занимает всё место под шапкой */
-.ai-full-container {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 140px); /* 100% экрана минус шапка (60px) и нижнее меню (80px) */
-    position: relative;
+@keyframes screenFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px); /* Экран чуть "всплывает" снизу */
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Область сообщений (растягивается) */
-.ai-messages-container {
-    flex: 1; /* Занимает всё свободное место */
-    overflow-y: auto; /* Прокрутка */
-    padding: 15px;
-    padding-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background: #f8f9fa; /* Чуть сероватый фон для чата */
+.game-screen.active {
+    display: block;
+    animation: screenFadeIn 0.3s ease-out forwards;
 }
 
-/* Пузыри сообщений */
-.message {
-    padding: 12px 16px;
-    border-radius: 12px;
-    max-width: 85%;
-    font-size: 14px;
-    line-height: 1.4;
-    word-wrap: break-word;
+/* 2. Отклик кнопок при нажатии (эффект нажатия) */
+.btn:active, .menu-card:active, .asset-btn:active, .tab-btn:active, .spin-btn:active {
+    transform: scale(0.96); /* Кнопка слегка уменьшается, как настоящая */
+    transition: transform 0.1s;
 }
 
-.message.bot {
-    background: #ffffff;
-    color: #333;
-    align-self: flex-start;
-    border-bottom-left-radius: 2px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+/* 3. Плавный переход для всех ховеров и изменений */
+.menu-card, .btn, .tab-btn, .asset-list-item {
+    transition: all 0.2s ease-in-out;
 }
 
-.message.user {
-    background: #007aff;
+/* 4. Анимация для модального окна (чтобы не прыгало) */
+.modal-content {
+    animation: modalSlideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(50px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+::selection {
+    background: var(--accent-blue);
     color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 2px;
-    box-shadow: 0 2px 5px rgba(0, 122, 255, 0.3);
 }
 
-/* Поле ввода */
-.ai-input-wrapper {
-    padding: 10px 15px;
-    background: white;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    border-top: 1px solid #eee;
-    height: 70px; /* Фиксированная высота нижней панели */
+::-webkit-scrollbar {
+    width: 6px;
 }
-
-.ai-input-wrapper input {
-    flex: 1;
-    height: 40px;
-    padding: 0 15px;
-    border-radius: 20px;
-    border: 1px solid #ddd;
-    outline: none;
-    font-size: 16px;
-    background: #f5f5f5;
-}
-
-.ai-send-btn {
-    width: 40px;
-    height: 40px;
-    background: #007aff;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    cursor: pointer;
+::-webkit-scrollbar-thumb {
+    background: #b0c4de; 
+    border-radius: 10px;
 }
