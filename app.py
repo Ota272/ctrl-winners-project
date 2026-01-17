@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # Твой секретный ключ
 
-GOOGLE_API_KEY = "AIzaSyAjOi27_mF3rI9JFEz4o89v6_KJ5eT8Mqk"
+GOOGLE_API_KEY = "AIzaSyBT2MOpb6gwHeJom70FpKnthOlZzTiPPPA"
 genai.configure(api_key=GOOGLE_API_KEY)
 # Используем этот псевдоним - он сам найдет рабочую версию Flash
 model = genai.GenerativeModel('gemini-flash-latest')
