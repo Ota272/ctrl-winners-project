@@ -3,12 +3,13 @@ import sqlite3
 import json  # Не забудь этот импорт!
 import google.generativeai as genai
 import os
+from datetime import datetime
 
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # Твой секретный ключ
 
-GOOGLE_API_KEY = "AIzaSyBT2MOpb6gwHeJom70FpKnthOlZzTiPPPA"
+GOOGLE_API_KEY = ""
 genai.configure(api_key=GOOGLE_API_KEY)
 # Используем этот псевдоним - он сам найдет рабочую версию Flash
 model = genai.GenerativeModel('gemini-flash-latest')
@@ -18,6 +19,49 @@ def db():
     conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def log_history(user_id, action_type, asset_name, amount, price, total, balance_snapshot):
+    conn = db()
+    # Используем datetime('now', 'localtime') для правильного времени
+    conn.execute("""
+        INSERT INTO history (user_id, action_type, asset_name, amount, price, total, balance_snapshot, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+    """, (user_id, action_type, asset_name, amount, price, total, balance_snapshot))
+    conn.commit()
+
+
+
+@app.route("/api/history")
+def get_history():
+    if "user_id" not in session:
+        return jsonify([])
+    
+    user_id = session["user_id"]
+    conn = db()
+    # Берем последние 50 операций, самые новые сверху
+    rows = conn.execute("SELECT * FROM history WHERE user_id=? ORDER BY id DESC LIMIT 50", (user_id,)).fetchall()
+    
+    # Превращаем в список словарей
+    history = [dict(row) for row in rows]
+    return jsonify(history)
+
+
+@app.route("/api/log_action", methods=["POST"])
+def log_action_api():
+    if "user_id" not in session: return jsonify({"error": "auth"})
+
+    data = request.json
+    log_history(
+        session["user_id"], 
+        data.get("type"),   
+        data.get("asset"),  
+        data.get("amount"), 
+        data.get("price"),  
+        data.get("total"),
+        data.get("balance") # <-- Получаем общий капитал от JS
+    )
+    return jsonify({"status": "logged"})
 
 
 # ======= 1. СТРАНИЦЫ (HTML) =======

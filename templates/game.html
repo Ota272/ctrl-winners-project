@@ -8,6 +8,7 @@
     <title>CapFinance Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -178,6 +179,50 @@
             </div>
         </main>
 
+        <main class="game-screen" id="screen-stats">
+            <header class="app-header">
+                <span class="logo-fin">STAT</span>
+                <h1>АНАЛИТИКА</h1>
+                <div style="width: 24px;"></div>
+            </header>
+    
+            <div class="content-padding">
+                <div class="info-card">
+                    <span class="card-label">Динамика капитала</span>
+                    <canvas id="capitalChart" style="max-height: 200px;"></canvas>
+                </div>
+
+                <div class="info-card">
+                    <span class="card-label">Структура портфеля</span>
+                    <div style="position: relative; height: 200px;">
+                        <canvas id="assetsChart"></canvas>
+                    </div>
+                </div>
+
+                <h3 class="section-title">Прогресс</h3>
+                <div class="accounts-grid">
+                    <div class="account-card">
+                        <div>
+                            <span style="color:#777; font-size:12px;">Всего сделок</span>
+                            <div id="stat-total-trades" style="font-weight:bold; font-size:1.2rem;">0</div>
+                        </div>
+                        <div style="font-size:30px;">📊</div>
+                    </div>
+                    <div class="account-card">
+                        <div>
+                            <span style="color:#777; font-size:12px;">Любимый актив</span>
+                            <div id="stat-fav-asset" style="font-weight:bold; font-size:1.1rem;">-</div>
+                        </div>
+                        <div style="font-size:30px;">❤️</div>
+                    </div>
+                </div>
+
+                <h3 class="section-title">История операций</h3>
+                <div class="asset-list" id="history-list-container">
+                    </div>
+            </div>
+        </main>
+
         <main class="game-screen" id="screen-rating">
             <header class="app-header">
                 <span class="logo-fin">TOP</span>
@@ -331,9 +376,9 @@
                 <i class="fa-solid fa-house"></i>
                 <span>Главная</span>
             </button>
-            <button class="tab-btn" onclick="showScreen('screen-accounts')">
-                <i class="fa-solid fa-wallet"></i>
-                <span>Счета</span>
+            <button class="tab-btn" onclick="showScreen('screen-stats')">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Аналитика</span>
             </button>
             <button class="tab-btn" onclick="showScreen('screen-ai')">
                 <i class="fa-solid fa-robot"></i>

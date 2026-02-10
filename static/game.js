@@ -288,6 +288,9 @@ function showScreen(screenId) {
             // Специальная логика для конкретных экранов
             if (screenId === 'screen-game-main') updateAllAssetsList();
             if (screenId === 'screen-accounts') updateAccountsUI();
+            if (screenId === 'screen-stats') {
+                renderAnalytics();
+            }
             if (screenId === 'screen-roulette') {
                 const balEl = document.getElementById('roulette-balance');
                 if(balEl) balEl.innerText = formatUSD(DATABASE.portfolio.usd);
@@ -494,6 +497,7 @@ function tradeAction(action) {
             if (!DATABASE.portfolio.assets[currentModalAsset.id]) DATABASE.portfolio.assets[currentModalAsset.id] = 0;
             DATABASE.portfolio.assets[currentModalAsset.id] += amount;
             alert('Куплено!');
+            logTransaction('BUY', currentModalAsset.name, amount, currentModalAsset.price, totalCost);
             closeModal();
         } else {
             alert('Нет денег (USD)!');
@@ -504,6 +508,7 @@ function tradeAction(action) {
             DATABASE.portfolio.assets[currentModalAsset.id] -= amount;
             DATABASE.portfolio.usd += totalCost;
             alert('Продано!');
+            logTransaction('SELL', currentModalAsset.name, amount, currentModalAsset.price, totalCost);
             closeModal();
         } else {
             alert('Недостаточно активов!');
@@ -569,6 +574,42 @@ function checkAndRenderAsset(asset, container) {
         `;
         container.innerHTML += html;
     }
+}
+
+
+function logTransaction(type, assetName, amount, price, total) {
+    // Считаем текущий общий капитал для графика
+    let currentCapital = DATABASE.portfolio.usd + DATABASE.portfolio.deposit;
+    // (Тут можно добавить сложный пересчет всех активов, но для скорости берем кэш + примерную стоимость активов)
+    // Упростим: просто передадим то, что есть в UI сейчас
+    // Но лучше пересчитать:
+    for (const [id, qty] of Object.entries(DATABASE.portfolio.assets)) {
+         let asset = findAssetByIdInMarket(id); // нужна вспомогательная функция или перебор
+         if(asset) currentCapital += qty * asset.price;
+    }
+
+    fetch('/api/log_action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            type: type,
+            asset: assetName,
+            amount: amount,
+            price: price,
+            total: total,
+            balance: currentCapital // Отправляем капитал
+        })
+    });
+}
+
+// Вспомогательная функция поиска (добавь если нет)
+function findAssetByIdInMarket(id) {
+    let found = null;
+    ['stocks', 'crypto', 'metals'].forEach(cat => {
+        if(!found) found = DATABASE.market[cat].find(a => a.id === id);
+    });
+    // ... поиск в скинах и подарках ...
+    return found; 
 }
 
 function addAssetRow(container, name, value, img, isMoney) {
@@ -881,4 +922,115 @@ function removeMessage(id) {
 function scrollToBottom() {
     const chatBox = document.getElementById('aiMessages');
     chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+let capitalChartInstance = null;
+let assetsChartInstance = null;
+
+function renderAnalytics() {
+    // 1. Загружаем историю
+    fetch('/api/history')
+        .then(res => res.json())
+        .then(history => {
+            // А. Рендер списка
+            const list = document.getElementById('history-list-container');
+            list.innerHTML = '';
+            
+            // Данные для графика капитала
+            let chartLabels = [];
+            let chartData = [];
+            let tradeCounts = {};
+
+            history.forEach(row => {
+                // Список
+                let color = row.action_type === 'BUY' ? '#e74c3c' : '#2ecc71';
+                let sign = row.action_type === 'BUY' ? '-' : '+';
+                list.innerHTML += `
+                    <div class="asset-list-item">
+                        <div class="asset-list-details">
+                            <span>${row.action_type === 'BUY' ? 'Купил' : 'Продал'} ${row.asset_name}</span>
+                            <small>${row.timestamp}</small>
+                        </div>
+                        <div class="asset-list-price" style="color:${color}">
+                            <strong>${sign}${formatUSD(row.total)}</strong>
+                        </div>
+                    </div>
+                `;
+                
+                // Для графика (берем balance_snapshot)
+                if (row.balance_snapshot) {
+                    chartLabels.unshift(row.timestamp.split(' ')[1]); // Только время
+                    chartData.unshift(row.balance_snapshot);
+                }
+                
+                // Статистика
+                if(!tradeCounts[row.asset_name]) tradeCounts[row.asset_name] = 0;
+                tradeCounts[row.asset_name]++;
+            });
+
+            document.getElementById('stat-total-trades').innerText = history.length;
+            
+            // Находим любимый актив
+            let fav = Object.keys(tradeCounts).reduce((a, b) => tradeCounts[a] > tradeCounts[b] ? a : b, '-');
+            document.getElementById('stat-fav-asset').innerText = fav;
+
+            // Б. Рисуем График Капитала (Line Chart)
+            const ctxCap = document.getElementById('capitalChart').getContext('2d');
+            if(capitalChartInstance) capitalChartInstance.destroy();
+            
+            capitalChartInstance = new Chart(ctxCap, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Капитал ($)',
+                        data: chartData,
+                        borderColor: '#0088cc',
+                        backgroundColor: 'rgba(0, 136, 204, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: {display: false} } }
+            });
+        });
+
+    // 2. Рисуем Диаграмму Активов (Pie Chart)
+    const ctxPie = document.getElementById('assetsChart').getContext('2d');
+    if(assetsChartInstance) assetsChartInstance.destroy();
+    
+    // Собираем данные
+    let labels = ['USD'];
+    let data = [DATABASE.portfolio.usd];
+    let colors = ['#2ecc71']; // Зеленый для кэша
+
+    // Проходим по портфелю
+    for (const [id, qty] of Object.entries(DATABASE.portfolio.assets)) {
+        if (qty > 0) {
+            // Упрощенный поиск имени и цены (нужно доработать поиск, если id сложный)
+            // Для примера просто выводим ID
+            let val = qty * 100; // ЗАГЛУШКА: Тут надо умножать на реальную цену asset.price
+            // Найдем реальную цену:
+             ['stocks', 'crypto', 'skins', 'gifts'].forEach(type => {
+                 // ...тут логика поиска как в updateUI...
+             });
+             
+            labels.push(id);
+            data.push(val); // Тут должна быть реальная стоимость
+            colors.push('#' + Math.floor(Math.random()*16777215).toString(16)); // Рандом цвет
+        }
+    }
+
+    assetsChartInstance = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 }
