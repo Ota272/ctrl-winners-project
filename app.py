@@ -23,7 +23,7 @@ def db():
 
 def log_history(user_id, action_type, asset_name, amount, price, total, balance_snapshot):
     conn = db()
-    # Используем datetime('now', 'localtime') для правильного времени
+    # Используем текущее время
     conn.execute("""
         INSERT INTO history (user_id, action_type, asset_name, amount, price, total, balance_snapshot, timestamp)
         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
@@ -52,6 +52,9 @@ def log_action_api():
     if "user_id" not in session: return jsonify({"error": "auth"})
 
     data = request.json
+    # Получаем текущий баланс пользователя, если он не передан, считаем 0
+    balance = data.get("balance", 0)
+    
     log_history(
         session["user_id"], 
         data.get("type"),   
@@ -59,7 +62,7 @@ def log_action_api():
         data.get("amount"), 
         data.get("price"),  
         data.get("total"),
-        data.get("balance") # <-- Получаем общий капитал от JS
+        balance # <-- ВАЖНО: Передаем баланс для графика
     )
     return jsonify({"status": "logged"})
 

@@ -9,15 +9,15 @@ const DATABASE = {
     tonPrice: 6.8, 
     market: {
         stocks: [
-            { id: 'GOOG', name: 'Alphabet', price: 175.4, symbol: 'NASDAQ:GOOG', img: 'static/images/goog.png' },
-            { id: 'AAPL', name: 'Apple', price: 189.3, symbol: 'NASDAQ:AAPL', img: 'static/images/aapl.png' },
-            { id: 'TSLA', name: 'Tesla', price: 210.5, symbol: 'NASDAQ:TSLA', img: 'static/images/tsla.png' },
-            { id: 'NVDA', name: 'NVIDIA', price: 880.0, symbol: 'NASDAQ:NVDA', img: 'static/images/nvda.png' },
-            { id: 'INTC', name: 'Intel', price: 30.5, symbol: 'NASDAQ:INTC', img: 'static/images/intc.png' },
-            { id: 'NFLX', name: 'Netflix', price: 620.0, symbol: 'NASDAQ:NFLX', img: 'static/images/nflx.png' },
-            { id: 'FRHC', name: 'Freedom', price: 82.0, symbol: 'NASDAQ:FRHC', img: 'static/images/frhc.png' },
-            { id: 'META', name: 'Meta', price: 490.0, symbol: 'NASDAQ:META', img: 'static/images/meta.png' }
+            // API Symbol — это тикер для Finnhub
+            { id: 'AAPL', name: 'Apple', price: 0, symbol: 'NASDAQ:AAPL', img: 'static/images/aapl.png' },
+            { id: 'TSLA', name: 'Tesla', price: 0, symbol: 'NASDAQ:TSLA', img: 'static/images/tsla.png' },
+            { id: 'NVDA', name: 'NVIDIA', price: 0, symbol: 'NASDAQ:NVDA', img: 'static/images/nvda.png' },
+            { id: 'GOOG', name: 'Google', price: 0, symbol: 'NASDAQ:GOOG', img: 'static/images/goog.png' },
+            { id: 'AMZN', name: 'Amazon', price: 0, symbol: 'NASDAQ:AMZN', img: 'static/images/alphabet.png' },
+            { id: 'MSFT', name: 'Microsoft', price: 0, symbol: 'NASDAQ:MSFT', img: 'static/images/meta.png' }
         ],
+        // ... остальное (crypto, metals) оставь как было ...
         crypto: [
             { id: 'BTC', name: 'Bitcoin', price: 67400, symbol: 'BINANCE:BTCUSDT', apiId: 'bitcoin', img: 'static/images/btc.png' },
             { id: 'ETH', name: 'Ethereum', price: 3500, symbol: 'BINANCE:ETHUSDT', apiId: 'ethereum', img: 'static/images/eth.png' },
@@ -235,6 +235,33 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchRealCryptoPrices, 60000); 
 });
 
+// 🔥 ВСТАВЬ СЮДА СВОЙ КЛЮЧ ОТ FINNHUB 🔥
+const STOCK_API_KEY = 'd670ampr01qmckkbk8p0d670ampr01qmckkbk8pg'; 
+// Пример: const STOCK_API_KEY = 'c1234567890abcdef';
+
+function fetchStockPrices() {
+    if (STOCK_API_KEY === 'd670ampr01qmckkbk8p0d670ampr01qmckkbk8pg') {
+        console.warn("Нет API ключа для акций!");
+        return;
+    }
+
+    // Проходим по всем акциям и делаем запрос
+    DATABASE.market.stocks.forEach(stock => {
+        // Finnhub endpoint
+        fetch(`https://finnhub.io/api/v1/quote?symbol=${stock.id}&token=${STOCK_API_KEY}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.c) { // 'c' - это Current Price
+                    stock.price = data.c;
+                    // Рассчитываем изменение в % (data.dp - это процент)
+                    stock.lastChange = data.dp; 
+                }
+                updateUI(); // Обновляем экран сразу как получили цену
+            })
+            .catch(err => console.log(`Ошибка цены ${stock.id}:`, err));
+    });
+}
+
 function fetchRealCryptoPrices() {
     const ids = DATABASE.market.crypto.map(c => c.apiId).join(',');
     fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
@@ -419,8 +446,16 @@ function simulateMarket() {
              gift.price = gift.priceTon * DATABASE.tonPrice;
         });
     });
+    // ... внутри simulateMarket ...
+    
+    // Логика Депозита (15% годовых)
     if (DATABASE.portfolio.deposit > 0) {
-        DATABASE.portfolio.usd += DATABASE.portfolio.deposit * 0.000001;
+        // 15% годовых = 0.041% в день.
+        // Чтобы игрок заметил рост, давай начислять "дневную" норму каждые 3 секунды (каждый тик рынка)
+        const dailyPercent = 0.15 / 365; // ~0.00041
+        
+        let profit = DATABASE.portfolio.deposit * dailyPercent;
+        DATABASE.portfolio.deposit += profit;
     }
     saveData();
     if(!document.getElementById('screen-roulette').classList.contains('active')) {
@@ -472,19 +507,53 @@ function findAssetById(type, id, parentId) {
 
 function openModal(type, id, parentId) {
     const asset = findAssetById(type, id, parentId);
-    if(!asset) return;
+    if (!asset) return;
+
     currentModalAsset = asset;
     document.getElementById('m-name').innerText = asset.name;
     document.getElementById('m-price').innerText = formatUSD(asset.price);
-    const qty = DATABASE.portfolio.assets[id] || 0;
-    document.getElementById('m-owned').innerText = qty.toFixed(4);
-    document.getElementById('m-dynamic').innerText = ''; 
-    document.getElementById('trade-modal').style.display = 'grid';
+    const owned = DATABASE.portfolio.assets[id] || 0;
+    document.getElementById('m-owned').innerText = owned.toFixed(4);
+
+    document.getElementById('trade-modal').style.display = 'block';
+
+    // === ЛОГИКА ГРАФИКА ===
+    const chartContainer = document.getElementById('modal-chart-container');
+    chartContainer.innerHTML = ''; // Очищаем старый
+
+    if (asset.symbol) {
+        chartContainer.style.display = 'block';
+        // Вставляем виджет TradingView
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": asset.symbol,
+            "interval": "D",
+            "timezone": "Etc/UTC",
+            "theme": "dark",        // ТЕМНАЯ ТЕМА ГРАФИКА
+            "style": "1",           // Свечи
+            "locale": "ru",
+            "toolbar_bg": "#1e2329",
+            "enable_publishing": false,
+            "hide_top_toolbar": true,
+            "hide_legend": true,
+            "save_image": false,
+            "container_id": "modal-chart-container"
+        });
+    } else {
+        // Если это скин или подарок — пишем заглушку
+        chartContainer.style.display = 'flex';
+        chartContainer.style.alignItems = 'center';
+        chartContainer.style.justifyContent = 'center';
+        chartContainer.style.color = '#555';
+        chartContainer.innerHTML = 'График доступен только для биржевых активов';
+    }
 }
 
 function closeModal() {
     document.getElementById('trade-modal').style.display = 'none';
     document.getElementById('m-amount').value = '';
+    // Важно: очищаем график, чтобы он не перекрывал кнопки при следующем открытии
+    document.getElementById('modal-chart-container').innerHTML = '';
 }
 
 function tradeAction(action) {
@@ -798,7 +867,18 @@ function convertCurrency() {
 
 // 1. Загрузка истории при запуске игры
 document.addEventListener('DOMContentLoaded', () => {
+
     loadChatHistory();
+    fetchRealCryptoPrices(); // Крипта
+    fetchStockPrices();      // <--- ДОБАВИЛ ЭТО (Акции)
+
+    setInterval(simulateMarket, 3000); // Это для внутренней симуляции (депозит и т.д.)
+    
+    // Обновляем реальные цены раз в минуту (чтобы не забанили API)
+    setInterval(() => {
+        fetchRealCryptoPrices();
+        fetchStockPrices();  // <--- И ЭТО
+    }, 60000);
 });
 
 function toggleAiChat() {
@@ -927,110 +1007,95 @@ function scrollToBottom() {
 let capitalChartInstance = null;
 let assetsChartInstance = null;
 
+// Переменная для графика, чтобы удалять старый перед созданием нового
+
+
 function renderAnalytics() {
-    // 1. Загружаем историю
-    fetch('/api/history')
-        .then(res => res.json())
-        .then(history => {
-            // А. Рендер списка
-            const list = document.getElementById('history-list-container');
-            list.innerHTML = '';
-            
-            // Данные для графика капитала
-            let chartLabels = [];
-            let chartData = [];
-            let tradeCounts = {};
+    const ctx = document.getElementById('assetsChart');
+    if (!ctx) return; // Защита, если мы не на том экране
 
-            history.forEach(row => {
-                // Список
-                let color = row.action_type === 'BUY' ? '#e74c3c' : '#2ecc71';
-                let sign = row.action_type === 'BUY' ? '-' : '+';
-                list.innerHTML += `
-                    <div class="asset-list-item">
-                        <div class="asset-list-details">
-                            <span>${row.action_type === 'BUY' ? 'Купил' : 'Продал'} ${row.asset_name}</span>
-                            <small>${row.timestamp}</small>
-                        </div>
-                        <div class="asset-list-price" style="color:${color}">
-                            <strong>${sign}${formatUSD(row.total)}</strong>
-                        </div>
-                    </div>
-                `;
-                
-                // Для графика (берем balance_snapshot)
-                if (row.balance_snapshot) {
-                    chartLabels.unshift(row.timestamp.split(' ')[1]); // Только время
-                    chartData.unshift(row.balance_snapshot);
-                }
-                
-                // Статистика
-                if(!tradeCounts[row.asset_name]) tradeCounts[row.asset_name] = 0;
-                tradeCounts[row.asset_name]++;
-            });
+    // Если график уже был нарисован — уничтожаем его, иначе будет глюк с наведением
+    if (assetsChartInstance) {
+        assetsChartInstance.destroy();
+    }
 
-            document.getElementById('stat-total-trades').innerText = history.length;
-            
-            // Находим любимый актив
-            let fav = Object.keys(tradeCounts).reduce((a, b) => tradeCounts[a] > tradeCounts[b] ? a : b, '-');
-            document.getElementById('stat-fav-asset').innerText = fav;
+    // 1. Считаем деньги по категориям
+    // Цвета фиксированные, как ты просил:
+    const COLORS = {
+        'USD': '#0ecb81',      // Зеленый
+        'Deposit': '#3498db',  // Синий
+        'Stocks': '#9b59b6',   // Фиолетовый
+        'Crypto': '#f0b90b',   // Желтый
+        'Skins': '#e74c3c',    // Красный
+        'Metals': '#95a5a6',   // Серый
+        'Gifts': '#e67e22'     // Оранжевый
+    };
 
-            // Б. Рисуем График Капитала (Line Chart)
-            const ctxCap = document.getElementById('capitalChart').getContext('2d');
-            if(capitalChartInstance) capitalChartInstance.destroy();
-            
-            capitalChartInstance = new Chart(ctxCap, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Капитал ($)',
-                        data: chartData,
-                        borderColor: '#0088cc',
-                        backgroundColor: 'rgba(0, 136, 204, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: {display: false} } }
-            });
-        });
+    let sums = { 
+        'USD': DATABASE.portfolio.usd, 
+        'Deposit': DATABASE.portfolio.deposit, // Добавили депозит!
+        'Stocks': 0, 'Crypto': 0, 'Skins': 0, 'Gifts': 0, 'Metals': 0 
+    };
 
-    // 2. Рисуем Диаграмму Активов (Pie Chart)
-    const ctxPie = document.getElementById('assetsChart').getContext('2d');
-    if(assetsChartInstance) assetsChartInstance.destroy();
-    
-    // Собираем данные
-    let labels = ['USD'];
-    let data = [DATABASE.portfolio.usd];
-    let colors = ['#2ecc71']; // Зеленый для кэша
-
-    // Проходим по портфелю
+    // Проходим по всем активам и считаем текущую стоимость
     for (const [id, qty] of Object.entries(DATABASE.portfolio.assets)) {
-        if (qty > 0) {
-            // Упрощенный поиск имени и цены (нужно доработать поиск, если id сложный)
-            // Для примера просто выводим ID
-            let val = qty * 100; // ЗАГЛУШКА: Тут надо умножать на реальную цену asset.price
-            // Найдем реальную цену:
-             ['stocks', 'crypto', 'skins', 'gifts'].forEach(type => {
-                 // ...тут логика поиска как в updateUI...
-             });
-             
-            labels.push(id);
-            data.push(val); // Тут должна быть реальная стоимость
-            colors.push('#' + Math.floor(Math.random()*16777215).toString(16)); // Рандом цвет
+        if (qty > 0.0001) {
+            let asset = findAssetByIdInAnyCategory(id);
+            if (asset) {
+                let val = qty * asset.price;
+                let cat = detectCategory(id); // Функция определения категории
+                if (cat) sums[cat] += val;
+            }
         }
     }
 
-    assetsChartInstance = new Chart(ctxPie, {
+    let labels = [];
+    let data = [];
+    let bgColors = [];
+
+    // Формируем данные для графика (скрываем пустые категории)
+    for (const [key, val] of Object.entries(sums)) {
+        if (val > 1.0) { // Если меньше 1 доллара — не показываем
+            labels.push(key);
+            data.push(val);
+            bgColors.push(COLORS[key]);
+        }
+    }
+
+    // Рисуем бублик
+    assetsChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: colors,
-                borderWidth: 0
+                backgroundColor: bgColors,
+                borderWidth: 0, // Убираем белые границы
+                hoverOffset: 10
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'right', 
+                    labels: { color: '#848e9c', boxWidth: 10 } // Серый текст легенды
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.raw;
+                            // Показываем цену в долларах при наведении!
+                            return ' $' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            cutout: '70%' // Толщина бублика
+        }
     });
+    
+    // Также обновляем историю (если есть код для списка)
+    // ... (код истории можно оставить старым или обновить)
 }
