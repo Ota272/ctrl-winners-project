@@ -9,14 +9,22 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "super_secret_key"  # Твой секретный ключ
 
-GOOGLE_API_KEY = ""
+GOOGLE_API_KEY = "AIzaSyCa4R6Ry5tGZ3I0ifkm20NseRlQMzoWzZI"
 genai.configure(api_key=GOOGLE_API_KEY)
 # Используем этот псевдоним - он сам найдет рабочую версию Flash
 model = genai.GenerativeModel('gemini-flash-latest')
 
 
 def db():
-    conn = sqlite3.connect("database.db")
+    # ЛОГИКА ДЛЯ AMVERA:
+    # Если папка /data существует (это сервер), храним БД там.
+    # Если нет (это твой комп), храним рядом с файлом.
+    if os.path.exists("/data"):
+        db_path = "/data/database.db"
+    else:
+        db_path = "database.db"
+
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -185,10 +193,8 @@ def get_state():
     if not row:
         return jsonify({"error": "no state found"})
 
-    # Преобразуем строку БД в словарь
     data = dict(row)
     
-    # Поле assets в базе лежит как строка текста, а нам нужен объект JSON
     if data.get("assets"):
         try:
             data["assets"] = json.loads(data["assets"])
@@ -196,6 +202,17 @@ def get_state():
             data["assets"] = {}
     else:
         data["assets"] = {}
+
+    # === ВСТАВИТЬ ЭТОТ БЛОК ===
+    # Считаем чистый убыток в Рулетке (сумма всех действий 'GAME')
+    # Если сумма отрицательная (например, -5000), значит игрок в минусе.
+    roulette_query = conn.execute("SELECT SUM(total) FROM history WHERE user_id=? AND action_type='GAME'", (user_id,)).fetchone()
+    roulette_net = roulette_query[0] if roulette_query and roulette_query[0] else 0
+    
+    # Мы показываем это на графике, только если это УБЫТОК (отрицательное число).
+    # Превращаем в положительное число для диаграммы.
+    data["roulette_loss"] = abs(roulette_net) if roulette_net < 0 else 0
+    # ==========================
 
     return jsonify(data)
 
@@ -320,5 +337,29 @@ def chat_with_ai():
         print(f"Ошибка AI: {e}")
         return jsonify({'reply': "Связь с биржей потеряна... Попробуй позже."})
 
+# ... (твои импорты) ...
+import os # Убедись, что os импортирован
+
+# ... (код приложения) ...
+
+def db():
+    # ЛОГИКА ДЛЯ AMVERA:
+    # Если папка /data существует (это сервер), храним БД там.
+    # Если нет (это твой комп), храним рядом с файлом.
+    if os.path.exists("/data"):
+        db_path = "/data/database.db"
+    else:
+        db_path = "database.db"
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# ... (весь остальной код функций и роутов оставляем без изменений) ...
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    # ЛОГИКА ЗАПУСКА:
+    # Обязательно host='0.0.0.0', иначе сайт не откроется снаружи
+    # debug=False для продакшена
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -29,8 +29,10 @@ const DATABASE = {
             { id: 'TON', name: 'Toncoin', price: 6.8, symbol: 'OKX:TONUSDT', apiId: 'the-open-network', img: 'static/images/ton.png' }
         ],
         metals: [
-            { id: 'GOLD', name: 'Золото', price: 2300, symbol: 'TVC:GOLD', img: 'static/images/gold.png' },
-            { id: 'SILV', name: 'Серебро', price: 28, symbol: 'TVC:SILVER', img: 'static/images/silver.png' }
+            // Цены обновлены до реальных (~2630 и ~31).
+            // apiId нужны для получения реальной цены через CoinGecko (используем токены, привязанные к металлам)
+            { id: 'GOLD', name: 'Золото', price: 2630, symbol: 'TVC:GOLD', apiId: 'pax-gold', img: 'static/images/gold.png' },
+            { id: 'SILV', name: 'Серебро', price: 31, symbol: 'TVC:SILVER', apiId: 'kinesis-silver', img: 'static/images/silver.png' }
         ],
         gifts: [
             { id: 'G_SNOOP', name: 'Snoop Dog', isGroup: true, img: 'static/images/g_snoop_cover.png', items: generateGiftVariations('Snoop', 50) },
@@ -240,10 +242,12 @@ const STOCK_API_KEY = 'd670ampr01qmckkbk8p0d670ampr01qmckkbk8pg';
 // Пример: const STOCK_API_KEY = 'c1234567890abcdef';
 
 function fetchStockPrices() {
-    if (STOCK_API_KEY === 'd670ampr01qmckkbk8p0d670ampr01qmckkbk8pg') {
+    // Убираем проверку, которая блокировала твой же ключ
+    if (!STOCK_API_KEY) { 
         console.warn("Нет API ключа для акций!");
         return;
     }
+    // ... дальше код остается тот же
 
     // Проходим по всем акциям и делаем запрос
     DATABASE.market.stocks.forEach(stock => {
@@ -263,19 +267,37 @@ function fetchStockPrices() {
 }
 
 function fetchRealCryptoPrices() {
-    const ids = DATABASE.market.crypto.map(c => c.apiId).join(',');
-    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`)
+    // 1. Собираем ID для Крипты
+    const cryptoIds = DATABASE.market.crypto.map(c => c.apiId);
+    
+    // 2. Собираем ID для Металлов (если у них прописан apiId)
+    const metalIds = DATABASE.market.metals.map(m => m.apiId).filter(id => id);
+    
+    // Объединяем в один запрос
+    const allIds = [...cryptoIds, ...metalIds].join(',');
+
+    fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${allIds}&vs_currencies=usd`)
         .then(res => res.json())
         .then(data => {
+            // А. Обновляем Крипту
             DATABASE.market.crypto.forEach(coin => {
                 if(data[coin.apiId]) {
                     coin.price = data[coin.apiId].usd;
+                    // Если это TON, сохраняем его курс для подарков
                     if(coin.id === 'TON') DATABASE.tonPrice = coin.price;
                 }
             });
+
+            // Б. Обновляем Металлы (Золото/Серебро)
+            DATABASE.market.metals.forEach(metal => {
+                if(metal.apiId && data[metal.apiId]) {
+                    metal.price = data[metal.apiId].usd;
+                }
+            });
+
             updateUI();
         })
-        .catch(e => console.log('Ошибка API крипты:', e));
+        .catch(e => console.log('Ошибка API цен (Крипта/Металлы):', e));
 }
 
 // === УНИВЕРСАЛЬНАЯ НАВИГАЦИЯ (ИСПРАВЛЕННАЯ) ===
@@ -414,50 +436,66 @@ function renderAssetList(type, parentId = null) {
 }
 
 function simulateMarket() {
+    // 1. АКЦИИ И МЕТАЛЛЫ:
+    // Добавляем "микро-тряску" (±0.05%), чтобы цифры менялись, но не убегали от графика.
+    // Раз в минуту API всё равно поставит точную цену, так что погрешность не накопится.
     ['stocks', 'metals'].forEach(cat => {
         DATABASE.market[cat].forEach(asset => {
-            const change = 1 + (Math.random() - 0.5) * 0.015;
-            asset.price = Math.max(0.1, asset.price * change);
-            asset.lastChange = (change - 1) * 100;
+            // Случайное изменение от -0.05% до +0.05%
+            const volatility = 0.001; 
+            const change = 1 + (Math.random() - 0.5) * volatility;
+            
+            asset.price = asset.price * change;
         });
     });
+
+    // 2. КРИПТА:
+    // Крипта волатильнее, дадим ей чуть больше свободы (±0.2%)
     DATABASE.market.crypto.forEach(coin => {
-        const volatility = 0.005; 
+        const volatility = 0.004; 
         const change = 1 + (Math.random() - 0.5) * volatility;
+        
         coin.price = coin.price * change;
-        coin.lastChange = (change - 1) * 100;
+        
+        // Обновляем курс TON для подарков
         if(coin.id === 'TON') DATABASE.tonPrice = coin.price;
     });
-    // Скины тоже немного меняются в цене
+
+    // 3. СКИНЫ (Полностью виртуальный рынок — тут меняем смелее)
     DATABASE.market.skins.forEach(group => {
         group.items.forEach(skin => {
+            // Шанс 20%, что цена изменится
             if(Math.random() > 0.8) {
-                const change = 1 + (Math.random() - 0.5) * 0.05;
+                const change = 1 + (Math.random() - 0.5) * 0.05; // ±2.5%
                 skin.price = Math.max(0.1, skin.price * change);
-                skin.lastChange = (change - 1) * 100;
             }
         });
     });
+
+    // 4. ПОДАРКИ (Зависят от TON + своя волатильность)
     DATABASE.market.gifts.forEach(group => {
         group.items.forEach(gift => {
+             // Редкое изменение цены в TON
              if(Math.random() > 0.9) {
                 gift.priceTon = gift.priceTon * (1 + (Math.random() - 0.5) * 0.02);
              }
-             gift.price = gift.priceTon * DATABASE.tonPrice;
+             // Пересчет в доллары
+             gift.price = gift.priceTon * (DATABASE.tonPrice || 6.8);
         });
     });
-    // ... внутри simulateMarket ...
     
-    // Логика Депозита (15% годовых)
+    // 5. ДЕПОЗИТ (Начисление % в реальном времени)
     if (DATABASE.portfolio.deposit > 0) {
-        // 15% годовых = 0.041% в день.
-        // Чтобы игрок заметил рост, давай начислять "дневную" норму каждые 3 секунды (каждый тик рынка)
-        const dailyPercent = 0.15 / 365; // ~0.00041
-        
-        let profit = DATABASE.portfolio.deposit * dailyPercent;
+        // 15% годовых / 365 дней ~ 0.04% в день
+        const dailyPercent = 0.15 / 365; 
+        // Начисляем маленькую дольку каждый тик (раз в 3 сек)
+        let profit = DATABASE.portfolio.deposit * dailyPercent; 
         DATABASE.portfolio.deposit += profit;
     }
+
     saveData();
+    
+    // Обновляем интерфейс (если не крутится рулетка)
     if(!document.getElementById('screen-roulette').classList.contains('active')) {
         updateUI();
     }
@@ -1004,98 +1042,290 @@ function scrollToBottom() {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-let capitalChartInstance = null;
-let assetsChartInstance = null;
+// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ ЧАРТОВ ===
+// === АНАЛИТИКА: ГРАФИКИ И ИСТОРИЯ ===
 
-// Переменная для графика, чтобы удалять старый перед созданием нового
+// Глобальные переменные для графиков, чтобы уничтожать старые перед перерисовкой
+let assetsChartGlobal = null;
+let capitalChartGlobal = null;
 
+// === ПОЛНЫЙ БЛОК АНАЛИТИКИ (Вставь это вместо старой renderAnalytics) ===
 
 function renderAnalytics() {
+    // 1. Рисуем БУБЛИК (Assets)
+    renderPortfolioPie();
+
+    // 2. Загружаем историю с сервера
+    fetch('/api/history')
+        .then(res => res.json())
+        .then(historyData => {
+            // historyData приходит: [Новая, ..., Старая]
+            // Для графика нам нужен порядок: [Старая, ..., Новая]
+            const chronologicalData = [...historyData].reverse();
+            
+            // А. Рисуем график динамики
+            renderCapitalLineChart(chronologicalData);
+            
+            // Б. Рисуем список операций (как есть, новые сверху)
+            renderHistoryList(historyData);
+
+            // В. ОБНОВЛЯЕМ ЦИФРЫ СТАТИСТИКИ (Светофор)
+            updateStatsCounters(historyData);
+        })
+        .catch(err => console.error("Ошибка аналитики:", err));
+}
+
+// --- 1. Функция Бублика ---
+function renderPortfolioPie() {
     const ctx = document.getElementById('assetsChart');
-    if (!ctx) return; // Защита, если мы не на том экране
+    if (!ctx) return;
 
-    // Если график уже был нарисован — уничтожаем его, иначе будет глюк с наведением
-    if (assetsChartInstance) {
-        assetsChartInstance.destroy();
-    }
+    if (window.assetsChartGlobal) window.assetsChartGlobal.destroy();
 
-    // 1. Считаем деньги по категориям
-    // Цвета фиксированные, как ты просил:
     const COLORS = {
-        'USD': '#0ecb81',      // Зеленый
-        'Deposit': '#3498db',  // Синий
-        'Stocks': '#9b59b6',   // Фиолетовый
-        'Crypto': '#f0b90b',   // Желтый
-        'Skins': '#e74c3c',    // Красный
-        'Metals': '#95a5a6',   // Серый
-        'Gifts': '#e67e22'     // Оранжевый
+        'USD': '#2ecc71',      // Зеленый (Кэш)
+        'Deposit': '#3498db',  // Синий (Банк)
+        'Stocks': '#9b59b6',   // Фиолетовый (Акции)
+        'Crypto': '#f1c40f',   // Желтый (Крипта)
+        'Skins': '#e74c3c',    // Красный (CS2)
+        'Metals': '#95a5a6',   // Серый (Металлы)
+        'Gifts': '#e67e22'     // Оранжевый (Подарки)
     };
 
-    let sums = { 
-        'USD': DATABASE.portfolio.usd, 
-        'Deposit': DATABASE.portfolio.deposit, // Добавили депозит!
-        'Stocks': 0, 'Crypto': 0, 'Skins': 0, 'Gifts': 0, 'Metals': 0 
-    };
+    let sums = { 'USD': DATABASE.portfolio.usd, 'Deposit': DATABASE.portfolio.deposit, 'Stocks': 0, 'Crypto': 0, 'Skins': 0, 'Gifts': 0, 'Metals': 0 };
 
-    // Проходим по всем активам и считаем текущую стоимость
     for (const [id, qty] of Object.entries(DATABASE.portfolio.assets)) {
         if (qty > 0.0001) {
             let asset = findAssetByIdInAnyCategory(id);
             if (asset) {
-                let val = qty * asset.price;
-                let cat = detectCategory(id); // Функция определения категории
-                if (cat) sums[cat] += val;
+                let cat = detectCategory(id);
+                if (cat && sums[cat] !== undefined) {
+                    sums[cat] += qty * asset.price;
+                }
             }
         }
     }
 
-    let labels = [];
-    let data = [];
-    let bgColors = [];
-
-    // Формируем данные для графика (скрываем пустые категории)
+    let labels = [], data = [], bgColors = [];
     for (const [key, val] of Object.entries(sums)) {
-        if (val > 1.0) { // Если меньше 1 доллара — не показываем
+        if (val > 1) { 
             labels.push(key);
             data.push(val);
             bgColors.push(COLORS[key]);
         }
     }
 
-    // Рисуем бублик
-    assetsChartInstance = new Chart(ctx.getContext('2d'), {
+    window.assetsChartGlobal = new Chart(ctx.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
                 backgroundColor: bgColors,
-                borderWidth: 0, // Убираем белые границы
-                hoverOffset: 10
+                borderWidth: 0,
+                hoverOffset: 15
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { 
-                    position: 'right', 
-                    labels: { color: '#848e9c', boxWidth: 10 } // Серый текст легенды
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let value = context.raw;
-                            // Показываем цену в долларах при наведении!
-                            return ' $' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                        }
-                    }
-                }
+                legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } },
+                tooltip: { callbacks: { label: (c) => ` $${c.raw.toLocaleString('en-US', {maximumFractionDigits:0})}` } }
             },
-            cutout: '70%' // Толщина бублика
+            cutout: '70%'
         }
     });
+}
+
+// --- 2. Функция Линейного Графика ---
+function renderCapitalLineChart(history) {
+    const ctx = document.getElementById('capitalChart'); 
+    if (!ctx) return;
+
+    if (window.capitalChartGlobal) window.capitalChartGlobal.destroy();
+
+    let labels = history.map(h => {
+        return new Date(h.timestamp.replace(' ', 'T')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    });
+    let values = history.map(h => h.balance_snapshot);
+
+    if (values.length === 0) {
+        labels = ['Сейчас'];
+        values = [DATABASE.portfolio.usd + DATABASE.portfolio.deposit];
+    }
+
+    window.capitalChartGlobal = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Капитал',
+                data: values,
+                borderColor: '#0088cc',
+                backgroundColor: 'rgba(0, 136, 204, 0.1)',
+                borderWidth: 2,
+                pointRadius: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { grid: { color: '#f0f0f0' } }
+            }
+        }
+    });
+}
+
+// --- 3. Функция Списка Истории ---
+function getAssetImageByName(name) {
+    if (!name) return 'static/images/market.png';
+    const n = name.toLowerCase();
+    if (n.includes('рулетка') || n.includes('казино')) return 'static/images/Mini Oscar.png';
+
+    let found = null;
+    ['stocks', 'crypto', 'metals'].forEach(cat => {
+        if (!found && DATABASE.market[cat]) {
+            const item = DATABASE.market[cat].find(a => a.name === name);
+            if (item) found = item.img;
+        }
+    });
+    if (!found) {
+        ['skins', 'gifts'].forEach(cat => {
+            if (!found && DATABASE.market[cat]) {
+                DATABASE.market[cat].forEach(group => {
+                    if (group.items) {
+                        const item = group.items.find(i => i.name === name);
+                        if (item) found = item.img;
+                    }
+                });
+            }
+        });
+    }
+    return found || 'static/images/market.png';
+}
+
+function renderHistoryList(history) {
+    const container = document.getElementById('history-list-container');
+    if (!container) return;
     
-    // Также обновляем историю (если есть код для списка)
-    // ... (код истории можно оставить старым или обновить)
+    container.innerHTML = ''; 
+
+    if (history.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">Истории пока нет</p>';
+        return;
+    }
+    
+    // Проходим по истории (новые сверху)
+    for (let i = 0; i < history.length; i++) {
+        const item = history[i];
+        const prevItem = history[i + 1]; // Состояние ДО этой сделки (более старое)
+
+        let deltaCapital = 0;
+        if (prevItem) {
+            deltaCapital = item.balance_snapshot - prevItem.balance_snapshot;
+        }
+
+        let colorClass = 'text-muted'; 
+        let sign = '';
+        
+        if (deltaCapital > 5) {
+            colorClass = 'income-color'; // Зеленый
+            sign = '📈 +'; 
+        } else if (deltaCapital < -5) {
+            colorClass = 'expense-color'; // Красный
+            sign = '📉 '; 
+        }
+
+        const iconSrc = getAssetImageByName(item.asset_name);
+        let displayTotal = Math.abs(item.total).toLocaleString('en-US');
+        let actionLabel = item.action_type === 'BUY' ? 'Покупка' : item.action_type === 'SELL' ? 'Продажа' : item.action_type === 'GAME' ? 'Рулетка' : item.action_type;
+        let amountColor = item.total > 0 ? '#2ecc71' : '#2c3e50';
+
+        const html = `
+            <div class="asset-list-item" style="padding: 12px;">
+                <img src="${iconSrc}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: contain; background: rgba(0,0,0,0.03); margin-right: 15px;">
+                
+                <div class="asset-list-details">
+                    <span>${item.asset_name}</span>
+                    <small style="color: #999;">${item.timestamp.split(' ')[1].slice(0,5)} • ${actionLabel}</small>
+                </div>
+
+                <div class="asset-list-price" style="text-align: right;">
+                    <strong style="display:block; color: ${amountColor}; font-size: 14px;">
+                        ${item.total > 0 ? '+' : ''}$${displayTotal}
+                    </strong>
+                    ${prevItem ? 
+                        `<span class="${colorClass}" style="font-size: 11px; font-weight: bold;">
+                            ${sign}$${Math.abs(deltaCapital).toFixed(0)} к капиталу
+                        </span>` 
+                        : '<span style="font-size:10px; color:#ccc;">Старт</span>'
+                    }
+                </div>
+            </div>
+        `;
+        container.innerHTML += html;
+    }
+}
+
+// --- 4. Функция Подсчета Статистики (Светофор) ---
+function updateStatsCounters(history) {
+    let green = 0;
+    let gray = 0;
+    let red = 0;
+
+    // Сравниваем i (текущую) с i+1 (предыдущей)
+    for (let i = 0; i < history.length - 1; i++) {
+        const current = history[i];
+        const prev = history[i + 1];
+
+        if (current.balance_snapshot && prev.balance_snapshot) {
+            const diff = current.balance_snapshot - prev.balance_snapshot;
+            if (diff > 5) green++;
+            else if (diff < -5) red++;
+            else gray++;
+        } else {
+            gray++;
+        }
+    }
+    // Если запись всего одна
+    if (history.length > 0 && history.length < 2) gray++;
+
+    const gEl = document.getElementById('stat-green');
+    const grEl = document.getElementById('stat-gray');
+    const rEl = document.getElementById('stat-red');
+
+    if(gEl) gEl.innerText = green;
+    if(grEl) grEl.innerText = gray;
+    if(rEl) rEl.innerText = red;
+}
+
+// --- Вспомогательные функции ---
+function findAssetByIdInAnyCategory(id) {
+    let found = null;
+    ['stocks', 'crypto', 'metals'].forEach(cat => { if(!found) found = DATABASE.market[cat].find(a => a.id === id); });
+    ['skins', 'gifts'].forEach(cat => {
+        if(!found) DATABASE.market[cat].forEach(group => { 
+            let item = group.items.find(i => i.id === id);
+            if(item) found = item;
+        });
+    });
+    return found;
+}
+
+function detectCategory(id) {
+    if (DATABASE.market.stocks.find(a => a.id === id)) return 'Stocks';
+    if (DATABASE.market.crypto.find(a => a.id === id)) return 'Crypto';
+    if (DATABASE.market.metals.find(a => a.id === id)) return 'Metals';
+    let isSkin = false, isGift = false;
+    DATABASE.market.skins.forEach(g => { if(g.items.find(i=>i.id===id)) isSkin=true; });
+    if(isSkin) return 'Skins';
+    DATABASE.market.gifts.forEach(g => { if(g.items.find(i=>i.id===id)) isGift=true; });
+    if(isGift) return 'Gifts';
+    return null;
 }

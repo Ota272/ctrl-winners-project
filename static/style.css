@@ -469,3 +469,61 @@ body {
 .ai-send-btn:active {
     transform: scale(0.9);
 }
+/* Контейнер, который соберет весь чат в кучу */
+#aiMessages {
+    background: rgba(255, 255, 255, 0.6); /* Полупрозрачный фон */
+    backdrop-filter: blur(10px);        /* Размытие как на твоем фоне */
+    border-radius: 20px;
+    padding: 20px;
+    margin: 20px auto;
+    max-width: 400px;                   /* Чтобы чат не растягивался на весь экран */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    min-height: 300px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Стили для строк текста внутри чата (если нет классов) */
+#aiMessages div, #aiMessages p {
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    max-width: 85%;
+    line-height: 1.4;
+    background: white; /* Белые облачки по умолчанию */
+    color: #333;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+/* Поле ввода и кнопка в один ряд */
+.ai-input-wrapper {
+    display: flex;
+    gap: 10px;
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 0 15px;
+    align-items: center;
+}
+
+#aiInput {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+/* --- ИСПРАВЛЕНИЕ НЕВИДИМОГО ТЕКСТА --- */
+/* Принудительно делаем текст темным во всех полях ввода */
+input, select, textarea, .modal-input {
+    color: #2c3e50 !important; 
+    -webkit-text-fill-color: #2c3e50 !important; /* Фикс для Safari/iOS */
+}
+
+/* Цвет плейсхолдера (подсказки) делаем серым */
+::placeholder {
+    color: #7f8c8d !important;
+    opacity: 1; 
+}
