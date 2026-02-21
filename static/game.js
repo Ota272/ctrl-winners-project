@@ -14,18 +14,18 @@ const DATABASE = {
             { id: 'TSLA', name: 'Tesla', price: 0, symbol: 'NASDAQ:TSLA', img: 'static/images/tsla.png' },
             { id: 'NVDA', name: 'NVIDIA', price: 0, symbol: 'NASDAQ:NVDA', img: 'static/images/nvda.png' },
             { id: 'GOOG', name: 'Google', price: 0, symbol: 'NASDAQ:GOOG', img: 'static/images/goog.png' },
-            { id: 'AMZN', name: 'Amazon', price: 0, symbol: 'NASDAQ:AMZN', img: 'static/images/alphabet.png' },
-            { id: 'MSFT', name: 'Microsoft', price: 0, symbol: 'NASDAQ:MSFT', img: 'static/images/meta.png' }
+            { id: 'AMZN', name: 'Amazon', price: 0, symbol: 'NASDAQ:AMZN', img: 'static/images/28.webp' },
+            { id: 'MSFT', name: 'Microsoft', price: 0, symbol: 'NASDAQ:MSFT', img: 'static/images/27.webp' },
         ],
         // ... остальное (crypto, metals) оставь как было ...
         crypto: [
             { id: 'BTC', name: 'Bitcoin', price: 67400, symbol: 'BINANCE:BTCUSDT', apiId: 'bitcoin', img: 'static/images/btc.png' },
             { id: 'ETH', name: 'Ethereum', price: 3500, symbol: 'BINANCE:ETHUSDT', apiId: 'ethereum', img: 'static/images/eth.png' },
             { id: 'SOL', name: 'Solana', price: 145.0, symbol: 'BINANCE:SOLUSDT', apiId: 'solana', img: 'static/images/sol.png' },
-            { id: 'USDT', name: 'Tether', price: 1.0, symbol: 'BINANCE:USDTUSD', apiId: 'tether', img: 'static/images/usdt.png' },
+            { id: 'USDT', name: 'Tether', price: 1.0, symbol: 'BINANCE:USDTUSD', apiId: 'tether', img: 'static/images/825.png' },
             { id: 'BNB', name: 'BNB', price: 590.0, symbol: 'BINANCE:BNBUSDT', apiId: 'binancecoin', img: 'static/images/bnb.png' },
             { id: 'DOGE', name: 'Dogecoin', price: 0.16, symbol: 'BINANCE:DOGEUSDT', apiId: 'dogecoin', img: 'static/images/doge.png' },
-            { id: 'HMSTR', name: 'Hamster', price: 0.05, symbol: 'GATEIO:HMSTR', apiId: 'hamster-kombat', img: 'static/images/hmstr.png' },
+            { id: 'WFI', name: 'WeFi', price: 2.1603, symbol: 'BITMART:WFIUSDT', apiId: 'wfi', img: 'static/images/34261.png' },
             { id: 'TON', name: 'Toncoin', price: 6.8, symbol: 'OKX:TONUSDT', apiId: 'the-open-network', img: 'static/images/ton.png' }
         ],
         metals: [
@@ -216,26 +216,6 @@ const RATES = { usd_kzt: 492, usd_jpy: 151, kzt_jpy: 0.3 };
 let currentModalAsset = null;
 let currentRotation = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
-    fetch('/api/get_state')
-        .then(response => response.json())
-        .then(data => {
-            if (!data.error) {
-                DATABASE.portfolio.usd = data.usd || 0;
-                DATABASE.portfolio.kzt = data.kzt || 0;
-                DATABASE.portfolio.jpy = data.jpy || 0;
-                DATABASE.portfolio.deposit = data.deposit || 0;
-                DATABASE.portfolio.assets = data.assets || {};
-            }
-            updateUI();
-        })
-        .catch(err => console.error("Ошибка:", err));
-
-    fetchRealCryptoPrices();
-    
-    setInterval(simulateMarket, 3000); 
-    setInterval(fetchRealCryptoPrices, 60000); 
-});
 
 // 🔥 ВСТАВЬ СЮДА СВОЙ КЛЮЧ ОТ FINNHUB 🔥
 const STOCK_API_KEY = 'd670ampr01qmckkbk8p0d670ampr01qmckkbk8pg'; 
@@ -904,19 +884,39 @@ function convertCurrency() {
 // === УМНЫЙ ЧАТ С ИСТОРИЕЙ ===
 
 // 1. Загрузка истории при запуске игры
+// === ЕДИНАЯ ТОЧКА ВХОДА (Вставляем это вместо старых EventListener'ов) ===
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Загружаем состояние кошелька
+    fetch('/api/get_state')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                DATABASE.portfolio.usd = data.usd || 0;
+                DATABASE.portfolio.kzt = data.kzt || 0;
+                DATABASE.portfolio.jpy = data.jpy || 0;
+                DATABASE.portfolio.deposit = data.deposit || 0;
+                DATABASE.portfolio.assets = data.assets || {};
+            }
+            updateUI();
+        })
+        .catch(err => console.error("Ошибка загрузки профиля:", err));
 
+    // 2. Загружаем историю чата
     loadChatHistory();
-    fetchRealCryptoPrices(); // Крипта
-    fetchStockPrices();      // <--- ДОБАВИЛ ЭТО (Акции)
 
-    setInterval(simulateMarket, 3000); // Это для внутренней симуляции (депозит и т.д.)
+    // 3. Загружаем цены первый раз
+    fetchRealCryptoPrices(); // Крипта + Металлы
+    fetchStockPrices();      // Акции
+
+    // 4. Запускаем симуляцию рынка (скачки цен скинов и депозит)
+    // ОДИН РАЗ (каждые 3 сек)
+    setInterval(simulateMarket, 3000); 
     
-    // Обновляем реальные цены раз в минуту (чтобы не забанили API)
+    // 5. Обновляем реальные цены СТРОГО раз в минуту
     setInterval(() => {
         fetchRealCryptoPrices();
-        fetchStockPrices();  // <--- И ЭТО
-    }, 60000);
+        fetchStockPrices();
+    }, 60000); 
 });
 
 function toggleAiChat() {

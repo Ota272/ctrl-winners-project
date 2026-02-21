@@ -7,13 +7,16 @@ from datetime import datetime
 
 
 app = Flask(__name__)
-app.secret_key = "super_secret_key"  # Твой секретный ключ
+app.secret_key = os.getenv("SECRET_KEY", "super_secret_key")
 
-GOOGLE_API_KEY = "AIzaSyCa4R6Ry5tGZ3I0ifkm20NseRlQMzoWzZI"
-genai.configure(api_key=GOOGLE_API_KEY)
-# Используем этот псевдоним - он сам найдет рабочую версию Flash
-model = genai.GenerativeModel('gemini-flash-latest')
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-flash-latest')
+else:
+    print("WARNING: GEMINI_API_KEY not found in environment variables!")
+    model = None
 
 def db():
     # ЛОГИКА ДЛЯ AMVERA:
@@ -358,8 +361,5 @@ def db():
 # ... (весь остальной код функций и роутов оставляем без изменений) ...
 
 if __name__ == "__main__":
-    # ЛОГИКА ЗАПУСКА:
-    # Обязательно host='0.0.0.0', иначе сайт не откроется снаружи
-    # debug=False для продакшена
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port)
